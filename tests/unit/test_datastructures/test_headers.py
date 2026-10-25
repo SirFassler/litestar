@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import pytest
 from pytest import FixtureRequest
@@ -212,6 +212,44 @@ def test_mutable_scope_headers_from_tuple_setitem_existing_key(
 ) -> None:
     mutable_headers_from_tuple[existing_headers_key] = "baz"
     assert list(raw_headers_tuple) == [(b"foo", b"baz")]
+
+
+def test_mutable_scope_headers_setitem_overwrites_multiple_duplicates() -> None:
+    message: dict[str, Any] = {
+        "type": "http.response.start",
+        "status": 200,
+        "headers": [
+            (b"cache-control", b"private"),
+            (b"cache-control", b"max-age=0"),
+            (b"cache-control", b"must-revalidate"),
+        ],
+    }
+    headers = MutableScopeHeaders.from_message(message)  # type: ignore[arg-type]
+    headers["Cache-Control"] = "no-store"
+    assert message["headers"] == [(b"cache-control", b"no-store")]
+
+
+def test_mutable_scope_headers_setitem_multiple_duplicates_preserves_other_headers() -> None:
+    message: dict[str, Any] = {
+        "type": "http.response.start",
+        "status": 200,
+        "headers": [
+            (b"cache-control", b"private"),
+            (b"accept", b"text/html"),
+            (b"cache-control", b"max-age=0"),
+            (b"content-type", b"text/plain"),
+            (b"cache-control", b"must-revalidate"),
+            (b"x-marker", b"tail"),
+        ],
+    }
+    headers = MutableScopeHeaders.from_message(message)  # type: ignore[arg-type]
+    headers["Cache-Control"] = "no-store"
+    assert message["headers"] == [
+        (b"cache-control", b"no-store"),
+        (b"accept", b"text/html"),
+        (b"content-type", b"text/plain"),
+        (b"x-marker", b"tail"),
+    ]
 
 
 def test_mutable_scope_headers_setitem_new_key(

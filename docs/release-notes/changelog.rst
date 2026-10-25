@@ -6,6 +6,13 @@
 .. changelog:: 3.0.0
     :date: 2364-01-27
 
+    .. change:: Delete duplicate headers in reverse order in ``MutableScopeHeaders``
+        :type: bugfix
+        :issue: 5147
+
+        Fixes an ``IndexError`` and potential deletion of unrelated headers when
+        replacing headers with 3 or more duplicate entries in ``MutableScopeHeaders``.
+
     .. change:: Read constraint metadata on ``data`` as on any other parameter
         :type: bugfix
         :pr: 5157
